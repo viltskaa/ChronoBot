@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message
 
-from bot.keyboards.reply import get_goods_keyboard
+from bot.keyboards.reply import get_data_keyboard, set_api_keyboard, by_article_keyboard
 from infrastructure.wb_api.wb_api import WBApi
 
 user_router = Router()
@@ -12,57 +12,41 @@ user_router = Router()
 
 class Form(StatesGroup):
     api_key = State()
-    cart = State()
-    cart_one = State()
+    article = State()
 
 
 @user_router.message(CommandStart())
 async def user_start(message: Message):
-    await message.reply("Hi", reply_markup=get_goods_keyboard())
+    await message.answer("Добро пожаловать!", reply_markup=set_api_keyboard())
 
 
-@user_router.message(lambda message: message.text == "k")
-async def request_check_key(message: Message, state: FSMContext):
-    if await get_key(state) is None:
-        await message.reply("Ключ не задан")
-        return
-    await message.reply(f"Текущий ключ: {get_key(state)}")
+@user_router.message(lambda message: message.text == "Посмотреть данные по артикулу")
+async def set_article(message: Message, state: FSMContext):
+    await message.answer("Пожалуйста, введите артикул:")
+    await state.set_state(Form.article)
 
 
-# @user_router.message(Form.api_key)
-async def request_set_key(message: Message, state: FSMContext):
-    api_key = message.text
-    await state.clear()
-    await state.update_data(api_key=api_key)
+@user_router.message(lambda message: message.text == "Изменить артикул")
+async def update_article(message: Message, state: FSMContext):
+    await message.answer("Пожалуйста, введите новый артикул:")
+    await state.set_state(Form.article)
 
 
-# @user_router.message(lambda message: message.text == "Сколько в корзинах")
-@user_router.message(lambda message: message.text == "c")
-async def request_api_key(message: Message, state: FSMContext):
-    if await get_key(state) is None:
-        await message.answer("Пожалуйста, введите ваш API ключ:")
-        await state.set_state(Form.cart)
-    else:
-        await message.reply("Ключ задан")
+@user_router.message(lambda message: message.text == "Вернуться")
+async def return_request(message: Message):
+    await message.answer("Возвращение в главное меню", reply_markup=get_data_keyboard())
 
 
-@user_router.message(lambda message: message.text == "c1")
-async def request_api_key(message: Message, state: FSMContext):
-    await message.answer("Введите артикул")
-    await state.set_state(Form.cart_one)
-
-
-@user_router.message(Form.cart_one)
-async def handle_cart_one(message: Message, state: FSMContext):
-    api_key = 'eyJhbGciOiJFUzI1NiIsImtpZCI6IjIwMjQwMjI2djEiLCJ0eXAiOiJKV1QifQ.eyJlbnQiOjEsImV4cCI6MTczMDQxNjIyNCwiaWQiOiIzNDRlMzA1Ni1jMDU4LTQxMmEtODk3Zi1kZjJkYTdiNDdiYjQiLCJpaWQiOjQ1ODkwNDkwLCJvaWQiOjg5NzE2NiwicyI6MTAyMiwic2lkIjoiMTZhMGZiZWEtYWVmZi00YjgxLThmNzEtZjYyZDlhYjJmMGM1IiwidCI6ZmFsc2UsInVpZCI6NDU4OTA0OTB9.QL4J2FabaLOHCdPovbyaUWKw28VdRbruv-PY1m5tLhWea_0DEcExywqEvwcRAiHfQyNOydOJe2biakFg68iH9Q'
-    await state.update_data(api_key=api_key)
-    api = WBApi(api_key=api_key)
+@user_router.message(lambda message: message.text == "Посмотреть корзины")
+async def get_cart_by_article(message: Message, state: FSMContext):
+    api = None
 
     try:
-        # article = message.text
-        article = 'RO03'
+        current_key = await get_key(state)
+        api = WBApi(api_key=current_key)
+        current_article = await get_article(state)
         data = await api.get_goods(limit_goods=1000, offset_goods=0)
-        nmid = get_id_from_article(data, article)
+        nmid = get_id_from_article(data, current_article)
 
         if nmid is None:
             await message.reply("Некорректный артикул")
@@ -73,22 +57,43 @@ async def handle_cart_one(message: Message, state: FSMContext):
         await message.reply(forms)
 
     except Exception as e:
-        await message.reply(f"Произошла ошибка: {e}")
+        await message.answer(f"Произошла ошибка: {e}")
     finally:
         await api.close()
 
-    await state.clear()
 
-
-@user_router.message(Form.cart)
-async def handle_cart(message: Message, state: FSMContext):
-    # api_key = message.text
-    api_key = 'eyJhbGciOiJFUzI1NiIsImtpZCI6IjIwMjQwMjI2djEiLCJ0eXAiOiJKV1QifQ.eyJlbnQiOjEsImV4cCI6MTczMDQxNjIyNCwiaWQiOiIzNDRlMzA1Ni1jMDU4LTQxMmEtODk3Zi1kZjJkYTdiNDdiYjQiLCJpaWQiOjQ1ODkwNDkwLCJvaWQiOjg5NzE2NiwicyI6MTAyMiwic2lkIjoiMTZhMGZiZWEtYWVmZi00YjgxLThmNzEtZjYyZDlhYjJmMGM1IiwidCI6ZmFsc2UsInVpZCI6NDU4OTA0OTB9.QL4J2FabaLOHCdPovbyaUWKw28VdRbruv-PY1m5tLhWea_0DEcExywqEvwcRAiHfQyNOydOJe2biakFg68iH9Q'
-    await state.update_data(api_key=api_key)
-
-    api = WBApi(api_key=api_key)
+@user_router.message(lambda message: message.text == "Посмотреть цену")
+async def get_cart_by_article(message: Message, state: FSMContext):
+    api = None
 
     try:
+        current_key = await get_key(state)
+        api = WBApi(api_key=current_key)
+        current_article = await get_article(state)
+        data = await api.get_goods(limit_goods=1000, offset_goods=0)
+        nmid = get_id_from_article(data, current_article)
+
+        if nmid is None:
+            await message.reply("Некорректный артикул")
+            return
+
+        res = await api.get_goods(limit_goods=1000, offset_goods=0, filter_nm_id=nmid)
+        forms = format_goods_data(res)
+        await message.reply(forms)
+
+    except Exception as e:
+        await message.answer(f"Произошла ошибка: {e}")
+    finally:
+        await api.close()
+
+
+@user_router.message(lambda message: message.text == "Посмотреть все корзины")
+async def get_cart(message: Message, state: FSMContext):
+    api = None
+
+    try:
+        current_key = await get_key(state)
+        api = WBApi(api_key=current_key)
         data = await api.get_goods(limit_goods=1000, offset_goods=0)
         ids = get_nm_id(data)
         ids = list(divide(ids))
@@ -99,42 +104,74 @@ async def handle_cart(message: Message, state: FSMContext):
             await message.reply(forms)
 
     except Exception as e:
-        await message.reply(f"Произошла ошибка: {e}")
+        await message.answer(f"Произошла ошибка: {e}")
     finally:
         await api.close()
 
-    await state.clear()
 
-
-# @user_router.message(lambda message: message.text == "Получить информацию о товарах")
-@user_router.message(lambda message: message.text == "G")
-async def request_api_key(message: Message, state: FSMContext):
-    if await get_key(state) is None:
-        await message.answer("Пожалуйста, введите ваш API ключ:")
-        await state.set_state(Form.api_key)
-    else:
-        await message.reply("Ключ задан")
-
-
-@user_router.message(Form.api_key)
-async def handle_api_key(message: Message, state: FSMContext):
-    api_key = message.text
-    await state.update_data(api_key=api_key)
-
-    api = WBApi(api_key=api_key)
+@user_router.message(lambda message: message.text == "Посмотреть все цены")
+async def get_goods_info(message: Message, state: FSMContext):
+    api = None
 
     try:
+        current_key = await get_key(state)
+        api = WBApi(api_key=current_key)
         data = await api.get_goods(limit_goods=1000, offset_goods=0)
         formatted_data = format_goods_data(data)
         messages = split_message(formatted_data)
         for msg in messages:
             await message.reply(msg)
     except Exception as e:
-        await message.reply(f"Произошла ошибка: {e}")
+        await message.answer(f"Произошла ошибка: {e}")
     finally:
         await api.close()
 
-    await state.clear()
+
+@user_router.message(lambda message: message.text == "Проверить API ключ")
+async def request_check_key(message: Message, state: FSMContext):
+    current_key = await get_key(state)
+    if current_key is None:
+        await message.answer("API ключ не задан")
+    else:
+        await message.answer(f"Текущий API ключ: {current_key}")
+
+
+async def get_key(state: FSMContext) -> str:
+    data = await state.get_data()
+    return data.get("api_key")
+
+
+async def get_article(state: FSMContext) -> str:
+    data = await state.get_data()
+    return data.get("article")
+
+
+@user_router.message(lambda message: message.text == "Установить API ключ")
+async def set_api_key(message: Message, state: FSMContext):
+    await message.answer("Пожалуйста, введите ваш API ключ:")
+    await state.set_state(Form.api_key)
+
+
+@user_router.message(lambda message: message.text == "Изменить API ключ")
+async def update_api_key(message: Message, state: FSMContext):
+    await message.answer("Пожалуйста, введите новый API ключ:")
+    await state.set_state(Form.api_key)
+
+
+@user_router.message(Form.api_key)
+async def confirm_api_key(message: Message, state: FSMContext):
+    api_key = message.text
+    await state.update_data(api_key=api_key)
+    current_key = await get_key(state)
+    await message.answer(f"API ключ успешно установлен: {current_key}", reply_markup=get_data_keyboard())
+
+
+@user_router.message(Form.article)
+async def confirm_article(message: Message, state: FSMContext):
+    article = message.text
+    await state.update_data(article=article)
+    current_article = await get_article(state)
+    await message.answer(f"Артикул успешно установлен: {current_article}", reply_markup=by_article_keyboard())
 
 
 def get_nm_id(data: dict) -> list[int]:
@@ -213,11 +250,6 @@ def split_message(message: str, max_length: int = 4096) -> list[str]:
         message = message[split_pos:].lstrip()
     chunks.append(message)
     return chunks
-
-
-async def get_key(state: FSMContext):
-    data = await state.get_data()
-    return data.get('api_key')
 
 
 
