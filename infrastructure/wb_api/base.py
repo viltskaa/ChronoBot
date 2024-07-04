@@ -24,6 +24,9 @@ class BaseClient:
         self._session: ClientSession | None = None
         self.log = logging.getLogger(self.__class__.__name__)
 
+    def set_url(self, url: str | URL) -> None:
+        self._base_url = url
+
     async def _get_session(self) -> ClientSession:
         """Get aiohttp session with cache."""
         if self._session is None:
@@ -34,7 +37,6 @@ class BaseClient:
                 connector=connector,
                 json_serialize=dumps,
             )
-
         return self._session
 
     @backoff.on_exception(
@@ -54,10 +56,10 @@ class BaseClient:
         """Make request and return decoded json response."""
         session = await self._get_session()
 
-        self.log.debug(
+        self.log.info(
             "Making request %r %r with json %r and params %r",
             method,
-            url,
+            self._base_url + url,
             json,
             params,
         )
@@ -75,10 +77,10 @@ class BaseClient:
                 self.log.info(f"{await response.text()}")
                 result = {}
 
-        self.log.debug(
+        self.log.info(
             "Got response %r %r with status %r and json %r",
             method,
-            url,
+            self._base_url + url,
             status,
             result,
         )

@@ -4,7 +4,8 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 def get_goods_keyboard() -> ReplyKeyboardMarkup:
     buttons = [
         [
-            KeyboardButton(text="Получить информацию о товарах")
+            KeyboardButton(text="Получить информацию о товарах"),
+            KeyboardButton(text="test")
         ],
     ]
 
