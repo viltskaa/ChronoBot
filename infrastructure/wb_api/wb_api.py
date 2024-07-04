@@ -51,9 +51,10 @@ class WBApi(BaseClient):
             self.log.error(f"An error occurred during request: {e}", exc_info=True)
             raise
 
-    async def get_nm_report(self, ids: list[int]):
+    async def get_nm_report(self, ids: list[int]) -> dict:
         self.set_url(self.analytics_url)
         endpoint = "/api/v2/nm-report/detail/history"
+        url = self.analytics_url + endpoint
         headers = {
             'Authorization': f'{self.api_key}'
         }
@@ -66,13 +67,26 @@ class WBApi(BaseClient):
             }
         }
 
+        self.log.info(
+            "Making POST request to %s with body: %s and headers: %s",
+            url,
+            json,
+            headers
+        )
+
         response = requests.post(
-            self.analytics_url + endpoint,
+            url,
             headers=headers,
             json=json
         )
 
-        print(response.status_code)
+        self.log.info(
+            "Got response %r with status %r : %r",
+            endpoint,
+            response.status_code,
+            response.text
+        )
+
         return response.json()
 
 

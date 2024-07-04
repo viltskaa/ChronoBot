@@ -13,6 +13,7 @@ user_router = Router()
 class Form(StatesGroup):
     api_key = State()
     cart = State()
+    cart_one = State()
 
 
 @user_router.message(CommandStart())
@@ -43,6 +44,40 @@ async def request_api_key(message: Message, state: FSMContext):
         await state.set_state(Form.cart)
     else:
         await message.reply("Ключ задан")
+
+
+@user_router.message(lambda message: message.text == "c1")
+async def request_api_key(message: Message, state: FSMContext):
+    await message.answer("Введите артикул")
+    await state.set_state(Form.cart_one)
+
+
+@user_router.message(Form.cart_one)
+async def handle_cart_one(message: Message, state: FSMContext):
+    api_key = 'eyJhbGciOiJFUzI1NiIsImtpZCI6IjIwMjQwMjI2djEiLCJ0eXAiOiJKV1QifQ.eyJlbnQiOjEsImV4cCI6MTczMDQxNjIyNCwiaWQiOiIzNDRlMzA1Ni1jMDU4LTQxMmEtODk3Zi1kZjJkYTdiNDdiYjQiLCJpaWQiOjQ1ODkwNDkwLCJvaWQiOjg5NzE2NiwicyI6MTAyMiwic2lkIjoiMTZhMGZiZWEtYWVmZi00YjgxLThmNzEtZjYyZDlhYjJmMGM1IiwidCI6ZmFsc2UsInVpZCI6NDU4OTA0OTB9.QL4J2FabaLOHCdPovbyaUWKw28VdRbruv-PY1m5tLhWea_0DEcExywqEvwcRAiHfQyNOydOJe2biakFg68iH9Q'
+    await state.update_data(api_key=api_key)
+    api = WBApi(api_key=api_key)
+
+    try:
+        # article = message.text
+        article = 'RO03'
+        data = await api.get_goods(limit_goods=1000, offset_goods=0)
+        nmid = get_id_from_article(data, article)
+
+        if nmid is None:
+            await message.reply("Некорректный артикул")
+            return
+
+        res = await api.get_nm_report([int(nmid)])
+        forms = format_cart(res)
+        await message.reply(forms)
+
+    except Exception as e:
+        await message.reply(f"Произошла ошибка: {e}")
+    finally:
+        await api.close()
+
+    await state.clear()
 
 
 @user_router.message(Form.cart)
@@ -109,6 +144,16 @@ def get_nm_id(data: dict) -> list[int]:
         ids.append(item.get('nmID'))
 
     return ids
+
+
+def get_id_from_article(data: dict, article: str) -> str | None:
+    items = data.get('data', {}).get('listGoods', [])
+
+    for item in items:
+        if item.get('vendorCode') == article:
+            return item.get('nmID')
+
+    return None
 
 
 def divide(ids: list[int]):
