@@ -3,6 +3,7 @@ from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message
+from datetime import datetime
 
 from bot.keyboards.reply import get_data_keyboard, set_api_keyboard, by_article_keyboard
 from infrastructure.wb_api.wb_api import WBApi
@@ -13,6 +14,8 @@ user_router = Router()
 class Form(StatesGroup):
     api_key = State()
     article = State()
+    article_time_start = State()
+    article_price = State()
 
 
 @user_router.message(CommandStart())
@@ -30,6 +33,34 @@ async def set_article(message: Message, state: FSMContext):
 async def update_article(message: Message, state: FSMContext):
     await message.answer("Пожалуйста, введите новый артикул:")
     await state.set_state(Form.article)
+
+
+@user_router.message(lambda message: message.text == "Добавить расписание")
+async def add_time_for_article(message: Message, state: FSMContext):
+    article = await get_article(state)
+    await message.answer(f"Пожалуйста, введите цену (в рублях) для артикля {article}:")
+    await state.set_state(Form.article_price)
+
+
+@user_router.message(Form.article_price)
+async def set_article_price(message: Message, state: FSMContext):
+    price = float(message.text)
+    await state.update_data(price=price)
+    current_price = await get_price(state)
+    article = await get_article(state)
+    await message.answer(f"Введите время начала действия цены ({current_price} р) для артикля {article}:")
+    await state.set_state(Form.article_time_start)
+
+
+@user_router.message(Form.article_time_start)
+async def set_article_time_start(message: Message, state: FSMContext):
+    time = datetime.strptime(message.text, '%H:%M')
+    await state.update_data(time=time)
+    current_time = await get_time(state)
+    article = await get_article(state)
+    price = await get_price(state)
+    await message.answer(f"Новое правило для артикля {article} : с {current_time.strftime('%H:%M')} цена {price}")
+    await state.set_state(Form.article_time_start)
 
 
 @user_router.message(lambda message: message.text == "Вернуться")
@@ -144,6 +175,17 @@ async def get_key(state: FSMContext) -> str:
 async def get_article(state: FSMContext) -> str:
     data = await state.get_data()
     return data.get("article")
+
+
+async def get_time(state: FSMContext) -> datetime:
+    data = await state.get_data()
+    return data.get("time")
+
+
+async def get_price(state: FSMContext) -> float:
+    data = await state.get_data()
+    return data.get("price")
+
 
 
 @user_router.message(lambda message: message.text == "Установить API ключ")

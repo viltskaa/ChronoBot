@@ -78,6 +78,7 @@ async def main():
     storage = get_storage(config)
 
     bot = Bot(token=config.tg_bot.token)
+
     dp = Dispatcher(storage=storage)
 
     dp.include_routers(*routers_list)
