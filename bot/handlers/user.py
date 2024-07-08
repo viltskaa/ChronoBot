@@ -187,7 +187,6 @@ async def get_price(state: FSMContext) -> float:
     return data.get("price")
 
 
-
 @user_router.message(lambda message: message.text == "Установить API ключ")
 async def set_api_key(message: Message, state: FSMContext):
     await message.answer("Пожалуйста, введите ваш API ключ:")
@@ -292,8 +291,3 @@ def split_message(message: str, max_length: int = 4096) -> list[str]:
         message = message[split_pos:].lstrip()
     chunks.append(message)
     return chunks
-
-
-
-
-

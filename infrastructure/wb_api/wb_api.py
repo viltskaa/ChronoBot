@@ -4,7 +4,6 @@ import requests
 
 
 class WBApi(BaseClient):
-
     def __init__(self, api_key: str) -> None:
         self.api_key = api_key
         self.base_url = "https://discounts-prices-api.wildberries.ru"
@@ -55,11 +54,12 @@ class WBApi(BaseClient):
         self.set_url(self.analytics_url)
         endpoint = "/api/v2/nm-report/detail/history"
         url = self.analytics_url + endpoint
+
         headers = {
             'Authorization': f'{self.api_key}'
         }
 
-        json = {
+        payload = {
             'nmIDs': ids,
             'period': {
                 'begin': "2024-07-03",
@@ -70,14 +70,14 @@ class WBApi(BaseClient):
         self.log.info(
             "Making POST request to %s with body: %s and headers: %s",
             url,
-            json,
+            payload,
             headers
         )
 
         response = requests.post(
             url,
             headers=headers,
-            json=json
+            json=payload
         )
 
         self.log.info(
@@ -88,7 +88,6 @@ class WBApi(BaseClient):
         )
 
         return response.json()
-
 
         # try:
         #     status, data = await self._make_request(
@@ -109,4 +108,3 @@ class WBApi(BaseClient):
         # except Exception as e:
         #     self.log.error(f"An error occurred during request: {e}", exc_info=True)
         #     raise
-
