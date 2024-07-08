@@ -51,6 +51,10 @@ class DbConfig:
         )
         return uri.render_as_string(hide_password=False)
 
+    # For SQLAlchemy
+    def test_url(self) -> str:
+        return "sqlite:///test.db"
+
     @staticmethod
     def from_env(env: Env):
         """
@@ -186,7 +190,7 @@ def load_config(path: str = None) -> Config:
 
     return Config(
         tg_bot=TgBot.from_env(env),
-        # db=DbConfig.from_env(env),
+        db=DbConfig.from_env(env),
         # redis=RedisConfig.from_env(env),
         misc=Miscellaneous(),
     )
