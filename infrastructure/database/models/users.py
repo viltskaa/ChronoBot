@@ -1,11 +1,10 @@
 from typing import Optional, List
 
 from sqlalchemy import String
-from sqlalchemy import text, BIGINT, Boolean, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from . import Shop
-from .base import Base, TimestampMixin, TableNameMixin
+from .base import Base, TimestampMixin, TableNameMixin, int_pk
 
 
 class User(Base, TimestampMixin, TableNameMixin):
@@ -28,7 +27,7 @@ class User(Base, TimestampMixin, TableNameMixin):
         Inherits methods from Base, TimestampMixin, and TableNameMixin classes, which provide additional functionality.
 
     """
-    user_id: Mapped[int] = mapped_column(BIGINT, primary_key=True, autoincrement=False)
+    user_id: Mapped[int_pk]
     username: Mapped[Optional[str]] = mapped_column(String(128))
     shops: Mapped[List[Shop]] = relationship()
 

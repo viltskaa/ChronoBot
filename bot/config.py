@@ -51,7 +51,6 @@ class DbConfig:
         )
         return uri.render_as_string(hide_password=False)
 
-    # For SQLAlchemy
     def test_url(self) -> str:
         return "sqlite:///test.db"
 
