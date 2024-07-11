@@ -13,7 +13,7 @@ class Worker(Base, TableNameMixin):
     name: Mapped[str]
 
     def __repr__(self):
-        return f"<Worker : name : {self.name}>"
+        return f"<Worker {self.id} : {self.name}>"
 
 
 class TimeTable(Base, TableNameMixin):
@@ -27,7 +27,7 @@ class TimeTable(Base, TableNameMixin):
 
 
 sync_engine = create_engine(
-    url=r'sqlite:///D:\\tsukanova\\work\\ChronoBot\\db_test\\test.db',
+    url=r'sqlite:///D:/work/ChronoBot/db_test/test.db',
     echo=True
 )
 
@@ -38,20 +38,3 @@ async_engine = create_engine(
 
 session_factory = sessionmaker(bind=sync_engine)
 async_sessions_factory = async_sessionmaker()
-
-
-def create_tables():
-    Base.metadata.drop_all(bind=sync_engine)
-    Base.metadata.create_all(bind=sync_engine)
-
-
-def insert_data():
-    worker_1 = Worker(name="worker1")
-    worker_2 = Worker(name="worker2")
-
-    with session_factory() as session:
-        session.add_all([worker_1, worker_2])
-        session.commit()
-
-
-create_tables()

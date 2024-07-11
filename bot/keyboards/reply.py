@@ -35,6 +35,7 @@ def by_article_keyboard() -> ReplyKeyboardMarkup:
     )
     return keyboard
 
+
 def set_api_keyboard() -> ReplyKeyboardMarkup:
     buttons = [
         [

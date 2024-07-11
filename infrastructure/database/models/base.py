@@ -9,8 +9,7 @@ from sqlalchemy import BIGINT
 from sqlalchemy.sql.functions import func
 from typing_extensions import Annotated
 
-int_pk = Annotated[int, mapped_column(BIGINT, primary_key=True, autoincrement=False)]
-int_pk_with_incr = Annotated[int, mapped_column(BIGINT, primary_key=True, autoincrement=True)]
+int_pk = Annotated[int, mapped_column(BIGINT, primary_key=True)]
 
 
 class Base(DeclarativeBase):
