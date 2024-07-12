@@ -67,13 +67,23 @@ class AsyncOrm:
             await session.commit()
 
     @staticmethod
-    async def update_time(id_: int, time_start: Optional[datetime], price: Optional[float]):
+    async def update_time(id_: int, time_start: datetime):
         async with async_sessions_factory() as session:
-            time = session.get(TimeTable, id_)
+            time = await session.get(TimeTable, id_)
+            time.time_start = time_start
+            await session.commit()
 
-            if time_start is not None:
-                time.time_start = time_start
-            if price is not None:
-                time.price = price
+    @staticmethod
+    async def update_price(id_: int, price: float):
+        async with async_sessions_factory() as session:
+            time = await session.get(TimeTable, id_)
+            time.price = price
+            await session.commit()
 
-            session.commit()
+    @staticmethod
+    async def delete_time(id_: int):
+        async with async_sessions_factory() as session:
+            time = await session.get(TimeTable, id_)
+            await session.delete(time)
+            await session.commit()
+
