@@ -1,6 +1,5 @@
 from typing import Optional
-
-from base import Base, TimestampMixin, TableNameMixin, int_pk
+from base import Base, TimestampMixin, TableNameMixin, int_pk, int_pk_incr
 from datetime import datetime
 
 from sqlalchemy import create_engine
@@ -18,7 +17,7 @@ class Worker(Base, TableNameMixin):
 
 class TimeTable(Base, TableNameMixin):
     id: Mapped[int_pk]
-    article: Mapped[int]
+    article: Mapped[str]
     time_start: Mapped[datetime]
     price: Mapped[float]
 
@@ -27,14 +26,16 @@ class TimeTable(Base, TableNameMixin):
 
 
 sync_engine = create_engine(
-    url=r'sqlite:///D:/work/ChronoBot/db_test/test.db',
+    # url=r'sqlite:///D:/work/ChronoBot/db_test/test.db',
+    url=r'sqlite:///D:/tsukanova/work/ChronoBot/db_test/test.db',
     echo=True
 )
 
-async_engine = create_engine(
-    url='sqlite:///D:/tsukanova/work/ChronoBot/test.db',
+async_engine = create_async_engine(
+    url=r'sqlite+aiosqlite:///D:/tsukanova/work/ChronoBot/db_test/test.db',
+    # url=r'sqlite+asyncpg:///D:/tsukanova/work/ChronoBot/db_test/test.db',
     echo=True
 )
 
 session_factory = sessionmaker(bind=sync_engine)
-async_sessions_factory = async_sessionmaker()
+async_sessions_factory = async_sessionmaker(bind=async_engine)

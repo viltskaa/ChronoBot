@@ -1,6 +1,9 @@
+from typing import Optional
+
 from base import Base
-from db import sync_engine, async_engine, Worker, session_factory, async_sessions_factory
+from db import sync_engine, async_engine, Worker, session_factory, async_sessions_factory, TimeTable
 from sqlalchemy import select
+from datetime import datetime
 
 
 class SyncOrmWorker:
@@ -50,3 +53,28 @@ class AsyncOrm:
         async with async_engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
+
+    @staticmethod
+    async def get_all() -> list[TimeTable]:
+        async with async_sessions_factory() as session:
+            result = await session.execute(select(TimeTable))
+            return result.scalars().all()
+
+    @staticmethod
+    async def insert_time(id_: int, article: str, time_start: datetime, price: float):
+        async with async_sessions_factory() as session:
+            time = TimeTable(id=id_, article=article, time_start=time_start, price=price)
+            session.add(TimeTable, time)
+            session.commit()
+
+    @staticmethod
+    async def update_time(id_: int, time_start: Optional[datetime], price: Optional[float]):
+        async with async_sessions_factory() as session:
+            time = session.get(TimeTable, id_)
+
+            if time_start is not None:
+                time.time_start = time_start
+            if price is not None:
+                time.price = price
+
+            session.commit()

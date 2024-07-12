@@ -34,7 +34,8 @@ class TimeTableRepo(BaseRepo):
         await self.session.commit()
 
     async def get_all_timetable(self) -> list[TimeTable]:
-        return await self.session.execute(select(TimeTable)).scalars().all()
+        result = await self.session.execute(select(TimeTable))
+        return result.scalars().all()
 
     async def get_time_by_article(self, article: str) -> TimeTable:
         return self.session.get(TimeTable, article)

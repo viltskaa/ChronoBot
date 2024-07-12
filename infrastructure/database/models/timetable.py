@@ -1,9 +1,10 @@
-from .base import Base, TimestampMixin, TableNameMixin
+from .base import Base, TimestampMixin, TableNameMixin, int_pk
 from sqlalchemy.orm import Mapped
 from datetime import datetime
 
 
 class TimeTable(Base, TableNameMixin):
+    id: Mapped[int_pk]
     article: Mapped[str]
     time_start: Mapped[datetime]
     price: Mapped[float]
