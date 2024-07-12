@@ -63,9 +63,8 @@ class AsyncOrm:
     @staticmethod
     async def insert_time(id_: int, article: str, time_start: datetime, price: float):
         async with async_sessions_factory() as session:
-            time = TimeTable(id=id_, article=article, time_start=time_start, price=price)
-            session.add(TimeTable, time)
-            session.commit()
+            session.add(TimeTable(id=id_, article=article, time_start=time_start, price=price))
+            await session.commit()
 
     @staticmethod
     async def update_time(id_: int, time_start: Optional[datetime], price: Optional[float]):
