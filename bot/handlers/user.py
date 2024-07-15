@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from aiogram import Router
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
@@ -55,7 +57,6 @@ async def update_discount(message: Message, state: FSMContext):
     await state.set_state(Form.discount)
 
 
-@user_router.message(lambda message: message.text == "Вернуться в главное меню")
 @user_router.message(lambda message: message.text == "Добавить расписание")
 async def add_time_for_article(message: Message, state: FSMContext):
     article = await get_article(state)
@@ -84,7 +85,7 @@ async def set_article_time_start(message: Message, state: FSMContext):
     await state.set_state(Form.article_time_start)
 
 
-@user_router.message(lambda message: message.text == "Вернуться")
+@user_router.message(lambda message: message.text == "Вернуться в главное меню")
 async def return_request(message: Message):
     await message.answer("Возвращение в главное меню", reply_markup=get_data_keyboard())
 
