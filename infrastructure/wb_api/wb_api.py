@@ -51,6 +51,41 @@ class WBApi(BaseClient):
             self.log.error(f"An error occurred during request: {e}", exc_info=True)
             raise
 
+    async def change_cost(self, nm_id: int, price: int, discount: int) -> dict:
+        self.set_url(self.analytics_url)
+        endpoint = "/api/v2/upload/task"
+        headers = {
+            'Authorization': f'{self.api_key}'
+        }
+
+        json = {
+            'nmID': nm_id,
+            'price': price,
+            'discount': discount
+        }
+
+        self.log.info(
+            "Making POST request to %s with body: %s and headers: %s",
+            self.base_url + endpoint,
+            json,
+            headers
+        )
+
+        response = requests.post(
+            self.base_url + endpoint,
+            headers=headers,
+            json=json
+        )
+
+        self.log.info(
+            "Got response %r with status %r : %r",
+            endpoint,
+            response.status_code,
+            response.text
+        )
+
+        return response.json()
+
     async def get_nm_report(self, ids: list[int]) -> dict:
         self.set_url(self.analytics_url)
         endpoint = "/api/v2/nm-report/detail/history"
@@ -89,7 +124,6 @@ class WBApi(BaseClient):
 
         return response.json()
 
-
         # try:
         #     status, data = await self._make_request(
         #         method="POST",
@@ -109,4 +143,3 @@ class WBApi(BaseClient):
         # except Exception as e:
         #     self.log.error(f"An error occurred during request: {e}", exc_info=True)
         #     raise
-

@@ -1,10 +1,12 @@
 from aiogram import Router
+from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message
+import prettytable as pt
 
-from bot.keyboards.reply import get_data_keyboard, set_api_keyboard, by_article_keyboard
+from bot.keyboards.reply import get_data_keyboard, set_api_keyboard, by_article_keyboard, yes_or_no_keyboard
 from infrastructure.wb_api.wb_api import WBApi
 
 user_router = Router()
@@ -13,11 +15,18 @@ user_router = Router()
 class Form(StatesGroup):
     api_key = State()
     article = State()
+    cost = State()
+    discount = State()
 
 
 @user_router.message(CommandStart())
 async def user_start(message: Message):
     await message.answer("Добро пожаловать!", reply_markup=set_api_keyboard())
+
+
+@user_router.message(lambda message: message.text == "Назад")
+async def return_request(message: Message):
+    await message.answer("Возвращение в меню для поиска информации по артикулу", reply_markup=by_article_keyboard())
 
 
 @user_router.message(lambda message: message.text == "Посмотреть данные по артикулу")
@@ -32,7 +41,21 @@ async def update_article(message: Message, state: FSMContext):
     await state.set_state(Form.article)
 
 
-@user_router.message(lambda message: message.text == "Вернуться")
+@user_router.message(lambda message: message.text == "Изменить скидку и цену товара")
+async def update_cost(message: Message, state: FSMContext):
+    await message.answer("Пожалуйста, введите новую цену товара:")
+    await state.set_state(Form.cost)
+
+
+@user_router.message(Form.cost)
+async def update_discount(message: Message, state: FSMContext):
+    cost = message.text
+    await state.update_data(cost=cost)
+    await message.answer("Пожалуйста, введите новую скидку товара:")
+    await state.set_state(Form.discount)
+
+
+@user_router.message(lambda message: message.text == "Вернуться в главное меню")
 async def return_request(message: Message):
     await message.answer("Возвращение в главное меню", reply_markup=get_data_keyboard())
 
@@ -46,13 +69,13 @@ async def get_cart_by_article(message: Message, state: FSMContext):
         api = WBApi(api_key=current_key)
         current_article = await get_article(state)
         data = await api.get_goods(limit_goods=1000, offset_goods=0)
-        nmid = get_id_from_article(data, current_article)
+        nm_id = get_id_from_article(data, current_article)
 
-        if nmid is None:
+        if nm_id is None:
             await message.reply("Некорректный артикул")
             return
 
-        res = await api.get_nm_report([int(nmid)])
+        res = await api.get_nm_report([int(nm_id)])
         forms = format_cart(res)
         await message.reply(forms)
 
@@ -63,7 +86,7 @@ async def get_cart_by_article(message: Message, state: FSMContext):
 
 
 @user_router.message(lambda message: message.text == "Посмотреть цену")
-async def get_cart_by_article(message: Message, state: FSMContext):
+async def get_good_by_article(message: Message, state: FSMContext):
     api = None
 
     try:
@@ -71,15 +94,49 @@ async def get_cart_by_article(message: Message, state: FSMContext):
         api = WBApi(api_key=current_key)
         current_article = await get_article(state)
         data = await api.get_goods(limit_goods=1000, offset_goods=0)
-        nmid = get_id_from_article(data, current_article)
+        nm_id = get_id_from_article(data, current_article)
 
-        if nmid is None:
+        if nm_id is None:
             await message.reply("Некорректный артикул")
             return
 
-        res = await api.get_goods(limit_goods=1000, offset_goods=0, filter_nm_id=nmid)
+        res = await api.get_goods(limit_goods=1000, offset_goods=0, filter_nm_id=nm_id)
         forms = format_goods_data(res)
-        await message.reply(forms)
+        messages = split_message(forms)
+        for msg in messages:
+            await message.reply(msg, parse_mode=ParseMode.HTML)
+        await message.answer("Хотите изменить цену и скидку товара?", reply_markup=yes_or_no_keyboard())
+
+    except Exception as e:
+        await message.answer(f"Произошла ошибка: {e}")
+    finally:
+        await api.close()
+
+
+@user_router.message(Form.discount)
+async def get_good_by_article(message: Message, state: FSMContext):
+    api = None
+
+    try:
+        current_key = await get_key(state)
+        api = WBApi(api_key=current_key)
+        current_article = await get_article(state)
+        current_cost = int(await get_cost(state))
+        discount = message.text
+        await state.update_data(discount=discount)
+        current_discount = int(await get_discount(state))
+        data = await api.get_goods(limit_goods=1000, offset_goods=0)
+        nm_id = int(get_id_from_article(data, current_article))
+
+        if nm_id is None:
+            await message.reply("Некорректный артикул")
+            return
+
+        res = await api.change_cost(nm_id, current_cost, current_discount)
+        if res['status'] != 200:
+            await message.reply(f"Произошла ошибка: {res['title']}. {res['detail']}", reply_markup=by_article_keyboard())
+        else:
+            await message.reply("Цена успешно изменена!", reply_markup=by_article_keyboard())
 
     except Exception as e:
         await message.answer(f"Произошла ошибка: {e}")
@@ -120,7 +177,7 @@ async def get_goods_info(message: Message, state: FSMContext):
         formatted_data = format_goods_data(data)
         messages = split_message(formatted_data)
         for msg in messages:
-            await message.reply(msg)
+            await message.reply(msg, parse_mode=ParseMode.HTML)
     except Exception as e:
         await message.answer(f"Произошла ошибка: {e}")
     finally:
@@ -146,6 +203,16 @@ async def get_article(state: FSMContext) -> str:
     return data.get("article")
 
 
+async def get_cost(state: FSMContext) -> str:
+    data = await state.get_data()
+    return data.get("cost")
+
+
+async def get_discount(state: FSMContext) -> str:
+    data = await state.get_data()
+    return data.get("discount")
+
+
 @user_router.message(lambda message: message.text == "Установить API ключ")
 async def set_api_key(message: Message, state: FSMContext):
     await message.answer("Пожалуйста, введите ваш API ключ:")
@@ -168,7 +235,7 @@ async def confirm_api_key(message: Message, state: FSMContext):
 
 @user_router.message(Form.article)
 async def confirm_article(message: Message, state: FSMContext):
-    article = message.text
+    article = message.text.upper()
     await state.update_data(article=article)
     current_article = await get_article(state)
     await message.answer(f"Артикул успешно установлен: {current_article}", reply_markup=by_article_keyboard())
@@ -219,36 +286,37 @@ def format_cart(data: dict) -> str:
 
 def format_goods_data(data: dict) -> str:
     items = data.get('data', {}).get('listGoods', [])
-    formatted_data = ""
+
+    table = pt.PrettyTable(['Артикул', 'Скидка', 'Цена', 'Цена со скидкой'])
+    table.align['Артикул'] = 'l'
+    table.align['Скидка'] = 'r'
+    table.align['Цена'] = 'r'
+    table.align['Цена со скидкой'] = 'r'
 
     for item in items:
         vendor_code = item.get('vendorCode', 'N/A')
         discount = item.get('discount', 'N/A')
         sizes = item.get('sizes', [])
 
-        sizes_info = "\n".join(
-            [f"Цена: {size.get('price', 'N/A')} руб., "
-             f"Цена со скидкой: {size.get('discountedPrice', 'N/A')} руб." for size in sizes])
+        for size in sizes:
+            price = size.get('price', 'N/A')
+            discounted_price = size.get('discountedPrice', 'N/A')
+            table.add_row([vendor_code, f'{discount}%', f'{price} руб.', f'{discounted_price} руб.'])
 
-        formatted_data += (
-            f"Артикул: {vendor_code}\n"
-            f"Скидка: {discount}%\n"
-            f"Размеры и цены:\n{sizes_info}\n\n"
-        )
-
-    return formatted_data.strip()
+    return table.get_string()
 
 
-def split_message(message: str, max_length: int = 4096) -> list[str]:
-    """Split a message into chunks of max_length."""
+def split_message(table_str: str, max_length: int = 4000) -> list[str]:
+    lines = table_str.split('\n')
+    header = '\n'.join(lines[:3])
     chunks = []
-    while len(message) > max_length:
-        split_pos = message.rfind('\n', 0, max_length)
-        if split_pos == -1:
-            split_pos = max_length
-        chunks.append(message[:split_pos])
-        message = message[split_pos:].lstrip()
-    chunks.append(message)
+    current_chunk = header
+    for line in lines[3:]:
+        if len(current_chunk) + len(line) + 1 > max_length - len('<pre></pre>'):
+            chunks.append(f"<pre>{current_chunk}</pre>")
+            current_chunk = header
+        current_chunk += '\n' + line
+    chunks.append(f"<pre>{current_chunk}</pre>")
     return chunks
 
 
