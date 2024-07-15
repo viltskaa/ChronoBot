@@ -22,7 +22,7 @@ class TimeTable(Base, TableNameMixin):
     price: Mapped[float]
 
     def __repr__(self):
-        return f"<TimeTable {self.article} с {self.time_start} цена {self.price}>"
+        return f"<TimeTable {self.article} с {self.time_start.time().isoformat("minutes")} цена {self.price}>"
 
 
 sync_engine = create_engine(

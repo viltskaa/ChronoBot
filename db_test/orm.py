@@ -67,10 +67,10 @@ class AsyncOrm:
             await session.commit()
 
     @staticmethod
-    async def update_time(id_: int, time_start: datetime):
+    async def update_time(id_: int, time_start: str):
         async with async_sessions_factory() as session:
             time = await session.get(TimeTable, id_)
-            time.time_start = time_start
+            time.time_start = datetime.strptime(time_start, '%H:%M')
             await session.commit()
 
     @staticmethod

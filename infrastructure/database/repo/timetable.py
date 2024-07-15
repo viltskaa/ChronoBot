@@ -1,5 +1,3 @@
-from typing import Optional
-
 from sqlalchemy import select
 from infrastructure.database.models.timetable import TimeTable
 from datetime import datetime
@@ -11,25 +9,30 @@ class TimeTableRepo(BaseRepo):
                           article: str,
                           time_start: datetime,
                           price: float):
-        time = TimeTable(article, time_start, price)
 
-        self.session.add(time)
+        self.session.add(TimeTable(article=article,
+                                   time_start=time_start,
+                                   price=price))
         await self.session.commit()
 
     async def update_time(self,
-                          article: str,
-                          time_start: Optional[datetime],
-                          price: Optional[float]):
-        time = self.session.get(TimeTable, article)
-        if time_start is not None:
-            time.time_start = time_start
-        if price is not None:
-            time.price = price
+                          id_: int,
+                          time_start: datetime):
+        time = await self.session.get(TimeTable, id_)
+        time.time_start = time_start
 
         await self.session.commit()
 
-    async def delete_time(self, article: str):
-        time = self.session.get(TimeTable, article)
+    async def update_price(self,
+                           id_: int,
+                           price: float):
+        time = await self.session.get(TimeTable, id_)
+        time.price = price
+
+        await self.session.commit()
+
+    async def delete_time(self, id_: int):
+        time = await self.session.get(TimeTable, id_)
         await self.session.delete(time)
         await self.session.commit()
 
@@ -38,4 +41,5 @@ class TimeTableRepo(BaseRepo):
         return result.scalars().all()
 
     async def get_time_by_article(self, article: str) -> TimeTable:
-        return self.session.get(TimeTable, article)
+        # TODO доделать
+        pass
