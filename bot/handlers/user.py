@@ -19,6 +19,8 @@ class Form(StatesGroup):
     article = State()
     cost = State()
     discount = State()
+    article_price = State()
+    article_time_start = State()
 
 
 @user_router.message(CommandStart())
