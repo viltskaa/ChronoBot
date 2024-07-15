@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from infrastructure.database.repo.users import UserRepo
 from infrastructure.database.setup import create_engine
 
@@ -36,7 +35,7 @@ if __name__ == "__main__":
         Pass the config object to this function for initializing the database resources.
         :param config: The config object loaded from your configuration.
         """
-        engine = create_engine(config.db)
+        engine = create_engine(config.db, True)
         session_pool = create_session_pool(engine)
 
         async with session_pool() as session:

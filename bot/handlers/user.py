@@ -56,6 +56,35 @@ async def update_discount(message: Message, state: FSMContext):
 
 
 @user_router.message(lambda message: message.text == "Вернуться в главное меню")
+@user_router.message(lambda message: message.text == "Добавить расписание")
+async def add_time_for_article(message: Message, state: FSMContext):
+    article = await get_article(state)
+    await message.answer(f"Пожалуйста, введите цену (в рублях) для артикля {article}:")
+    await state.set_state(Form.article_price)
+
+
+@user_router.message(Form.article_price)
+async def set_article_price(message: Message, state: FSMContext):
+    price = float(message.text)
+    await state.update_data(price=price)
+    current_price = await get_price(state)
+    article = await get_article(state)
+    await message.answer(f"Введите время начала действия цены ({current_price} р) для артикля {article}:")
+    await state.set_state(Form.article_time_start)
+
+
+@user_router.message(Form.article_time_start)
+async def set_article_time_start(message: Message, state: FSMContext):
+    time = datetime.strptime(message.text, '%H:%M')
+    await state.update_data(time=time)
+    current_time = await get_time(state)
+    article = await get_article(state)
+    price = await get_price(state)
+    await message.answer(f"Новое правило для артикля {article} : с {current_time.strftime('%H:%M')} цена {price}")
+    await state.set_state(Form.article_time_start)
+
+
+@user_router.message(lambda message: message.text == "Вернуться")
 async def return_request(message: Message):
     await message.answer("Возвращение в главное меню", reply_markup=get_data_keyboard())
 
@@ -213,6 +242,16 @@ async def get_discount(state: FSMContext) -> str:
     return data.get("discount")
 
 
+async def get_time(state: FSMContext) -> datetime:
+    data = await state.get_data()
+    return data.get("time")
+
+
+async def get_price(state: FSMContext) -> float:
+    data = await state.get_data()
+    return data.get("price")
+
+
 @user_router.message(lambda message: message.text == "Установить API ключ")
 async def set_api_key(message: Message, state: FSMContext):
     await message.answer("Пожалуйста, введите ваш API ключ:")
@@ -318,8 +357,3 @@ def split_message(table_str: str, max_length: int = 4000) -> list[str]:
         current_chunk += '\n' + line
     chunks.append(f"<pre>{current_chunk}</pre>")
     return chunks
-
-
-
-
-

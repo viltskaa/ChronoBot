@@ -23,6 +23,7 @@ def by_article_keyboard() -> ReplyKeyboardMarkup:
         [
             KeyboardButton(text="Посмотреть цену"),
             KeyboardButton(text="Посмотреть корзины"),
+            KeyboardButton(text="Добавить расписание"),
             KeyboardButton(text="Изменить артикул"),
             KeyboardButton(text="Вернуться в главное меню")
         ],
@@ -33,6 +34,7 @@ def by_article_keyboard() -> ReplyKeyboardMarkup:
         resize_keyboard=True
     )
     return keyboard
+
 
 def set_api_keyboard() -> ReplyKeyboardMarkup:
     buttons = [
